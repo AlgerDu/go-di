@@ -4,7 +4,7 @@ import "reflect"
 
 type (
 	ServiceCollector interface {
-		AddService(descriptor ServiceDescriptor) error
+		AddService(descriptor *ServiceDescriptor) error
 	}
 
 	ServiceProvider interface {
