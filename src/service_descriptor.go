@@ -1,6 +1,10 @@
 package di
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/AlgerDu/go-di/src/exts"
+)
 
 type ServiceDescriptor struct {
 	LifeTime ServiceLifetime
@@ -10,8 +14,10 @@ type ServiceDescriptor struct {
 
 	Instance reflect.Value
 	Creator  reflect.Value
+
+	hasInstance bool
 }
 
 func (descriptor *ServiceDescriptor) IsSuport(id string) bool {
-	return descriptor.Type.Name() == id || descriptor.DstType.Name() == id
+	return exts.Reflect_GetTypeKey(descriptor.Type) == id || exts.Reflect_GetTypeKey(descriptor.DstType) == id
 }
