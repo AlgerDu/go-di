@@ -21,7 +21,7 @@ type (
 
 const (
 	bs_Empty = iota
-	bs_Creating
+	bs_Filling
 	bs_OK
 )
 
@@ -49,8 +49,9 @@ func (box *box) GetInstance(dependPath []string) (reflect.Value, error) {
 		return box.Instance, nil
 	}
 
-	box.State = bs_Creating
+	box.State = bs_Filling
 
+	dependPath = append(dependPath, box.ID)
 	err := box.Scope.fillBox(dependPath, box)
 	if err != nil {
 		box.State = bs_Empty
