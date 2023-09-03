@@ -1,6 +1,9 @@
 package di
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 func Collector_AddInstance[insType any, dstType any](services ServiceCollector, ins insType) error {
 
@@ -15,17 +18,37 @@ func Collector_AddInstance[insType any, dstType any](services ServiceCollector, 
 	})
 }
 
-func Collector_AddScope[T any](services ServiceCollector, creator any) error {
+func Collector_AddScopeFor[forT any](services ServiceCollector, creator any) error {
 
-	t := new(T)
+	forType := reflect.TypeOf(new(forT))
+	if forType.Elem().Kind() == reflect.Pointer {
+		return fmt.Errorf("use %s replace %s", forType.Elem().Elem().Name(), forType.Elem().Name())
+	}
+
+	creatorType := reflect.TypeOf(creator)
+	insType := creatorType.Out(0)
 
 	return services.AddService(&ServiceDescriptor{
 		LifeTime:    SL_Scoped,
-		Type:        reflect.TypeOf(t),
-		DstType:     nil,
+		Type:        insType,
+		DstType:     forType,
 		Instance:    reflect.Value{},
-		Creator:     reflect.Value{},
+		Creator:     reflect.ValueOf(creator),
 		hasInstance: false,
 	})
+}
 
+func Collector_AddScope(services ServiceCollector, creator any) error {
+
+	creatorType := reflect.TypeOf(creator)
+	insType := creatorType.Out(0)
+
+	return services.AddService(&ServiceDescriptor{
+		LifeTime:    SL_Scoped,
+		Type:        insType,
+		DstType:     insType,
+		Instance:    reflect.Value{},
+		Creator:     reflect.ValueOf(creator),
+		hasInstance: false,
+	})
 }
