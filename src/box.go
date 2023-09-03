@@ -63,8 +63,5 @@ func (box *box) GetInstance(dependPath []string) (reflect.Value, error) {
 }
 
 func (box *box) CanntFill() bool {
-	if len(box.Creators) <= 0 {
-		return true
-	}
-	return false
+	return len(box.Creators) <= 0
 }
