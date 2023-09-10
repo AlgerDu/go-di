@@ -39,7 +39,6 @@ func Collector_AddScopeFor[forT any](services ServiceCollector, creator any) err
 }
 
 func Collector_AddScope(services ServiceCollector, creator any) error {
-
 	creatorType := reflect.TypeOf(creator)
 	insType := creatorType.Out(0)
 
@@ -51,4 +50,15 @@ func Collector_AddScope(services ServiceCollector, creator any) error {
 		Creator:     reflect.ValueOf(creator),
 		hasInstance: false,
 	})
+}
+
+func Provider_GetService[ServiceType any](provider ServiceProvider) (*ServiceType, error) {
+	service := new(ServiceType)
+	serviceValue, err := provider.GetService(reflect.TypeOf(service))
+	if err != nil {
+		return service, err
+	}
+
+	service = serviceValue.Interface().(*ServiceType)
+	return service, nil
 }
