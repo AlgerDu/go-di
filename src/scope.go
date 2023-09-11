@@ -10,25 +10,66 @@ import (
 
 type (
 	innerScope struct {
-		Parent *innerScope
+		ID string
+
+		Parent    *innerScope
+		SucScopes map[string]*innerScope
 
 		Descriptors []*ServiceDescriptor
 		Boxs        map[string]*box
 
-		creatingBox sync.Mutex
+		creatingBox      sync.Mutex
+		creatingSubScope sync.Mutex
 	}
 )
 
 func newInnerScope(
+	id string,
 	parent *innerScope,
 ) *innerScope {
 
 	return &innerScope{
-		Parent:      parent,
-		Descriptors: []*ServiceDescriptor{},
-		Boxs:        map[string]*box{},
-		creatingBox: sync.Mutex{},
+		ID:               id,
+		Parent:           parent,
+		SucScopes:        map[string]*innerScope{},
+		Descriptors:      []*ServiceDescriptor{},
+		Boxs:             map[string]*box{},
+		creatingBox:      sync.Mutex{},
+		creatingSubScope: sync.Mutex{},
 	}
+}
+
+func (scope *innerScope) CreateSubScope(id string, options ...func(ServiceCollector)) (Scope, error) {
+	id = scope.fmtSubScopeID(id)
+
+	_, exist := scope.SucScopes[id]
+	if exist {
+		return nil, fmt.Errorf("scope %s exist", id)
+	}
+
+	scope.creatingSubScope.Lock()
+	defer scope.creatingSubScope.Unlock()
+
+	_, exist = scope.SucScopes[id]
+	if exist {
+		return nil, fmt.Errorf("scope %s exist", id)
+	}
+
+	subScope := newInnerScope(id, scope)
+	for _, option := range options {
+		option(subScope)
+	}
+
+	scope.SucScopes[id] = subScope
+
+	return nil, nil
+}
+
+func (scope *innerScope) GetSubScope(id string) (Scope, bool) {
+	id = scope.fmtSubScopeID(id)
+
+	subScope, exist := scope.SucScopes[id]
+	return subScope, exist
 }
 
 func (scope *innerScope) AddService(descriptor *ServiceDescriptor) error {
@@ -42,10 +83,6 @@ func (scope *innerScope) GetService(serviceType reflect.Type) (reflect.Value, er
 	box := scope.findOrCreateBox(id)
 
 	return box.GetInstance([]string{})
-}
-
-func (scope *innerScope) CreateScope(options ...func(ServiceCollector)) (Scope, error) {
-	return nil, nil
 }
 
 func (scope *innerScope) findOrCreateBox(id string) *box {
@@ -124,4 +161,8 @@ func (scope *innerScope) fillBox(dependPath []string, box *box) error {
 	box.Instance = outValues[0]
 
 	return nil
+}
+
+func (scope *innerScope) fmtSubScopeID(id string) string {
+	return fmt.Sprintf("%s.%s", scope.ID, id)
 }

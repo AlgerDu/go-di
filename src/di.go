@@ -14,6 +14,7 @@ type (
 	Scope interface {
 		ServiceProvider
 
-		CreateScope(options ...func(ServiceCollector)) (Scope, error)
+		CreateSubScope(id string, options ...func(ServiceCollector)) (Scope, error)
+		GetSubScope(id string) (Scope, bool)
 	}
 )

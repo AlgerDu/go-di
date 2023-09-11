@@ -6,10 +6,10 @@ import (
 
 func TestScope_Base(t *testing.T) {
 
-	scope := newInnerScope(nil)
+	scope := newInnerScope("root", nil)
 	Collector_AddScope(scope, newStudent)
 
-	s, err := Provider_GetService[student](scope)
+	s, err := Provider_GetService[*student](scope)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -19,15 +19,15 @@ func TestScope_Base(t *testing.T) {
 
 func TestScope_Singleton(t *testing.T) {
 
-	scope := newInnerScope(nil)
+	scope := newInnerScope("root", nil)
 	Collector_AddSingleton(scope, newStudent)
 
-	s1, err := Provider_GetService[student](scope)
+	s1, err := Provider_GetService[*student](scope)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	s2, err := Provider_GetService[student](scope)
+	s2, err := Provider_GetService[*student](scope)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -35,4 +35,16 @@ func TestScope_Singleton(t *testing.T) {
 	if s1 != s2 {
 		t.Errorf("addr not equal for Singleton")
 	}
+}
+
+func TestScope_Singleton2(t *testing.T) {
+
+	scope := newInnerScope("root", nil)
+	Collector_AddSingletonFor[reader](scope, newStudent)
+
+	_, err := Provider_GetService[reader](scope)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
 }
