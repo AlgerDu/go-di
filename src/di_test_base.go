@@ -3,9 +3,17 @@ package di
 import "sync"
 
 type (
+	book struct {
+		Content string
+	}
+
 	student struct {
 		ID   int
 		Name string
+	}
+
+	reader interface {
+		Read(b *book) error
 	}
 )
 
@@ -25,4 +33,8 @@ func newStudent() *student {
 		ID:   studentCount,
 		Name: "123",
 	}
+}
+
+func (student *student) Read(b *book) error {
+	return nil
 }
