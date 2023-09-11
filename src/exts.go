@@ -34,7 +34,7 @@ func Collector_AddSingleton(services ServiceCollector, creator any) error {
 
 func Collector_AddSingletonFor[forT any](services ServiceCollector, creator any) error {
 
-	forType := reflect.TypeOf(new(forT))
+	forType := reflect.TypeOf(new(forT)).Elem()
 	if forType.Elem().Kind() == reflect.Pointer {
 		return fmt.Errorf("use %s replace %s", forType.Elem().Elem().Name(), forType.Elem().Name())
 	}
@@ -54,7 +54,7 @@ func Collector_AddSingletonFor[forT any](services ServiceCollector, creator any)
 
 func Collector_AddScopeFor[forT any](services ServiceCollector, creator any) error {
 
-	forType := reflect.TypeOf(new(forT))
+	forType := reflect.TypeOf(new(forT)).Elem()
 	if forType.Elem().Kind() == reflect.Pointer {
 		return fmt.Errorf("use %s replace %s", forType.Elem().Elem().Name(), forType.Elem().Name())
 	}
@@ -86,13 +86,15 @@ func Collector_AddScope(services ServiceCollector, creator any) error {
 	})
 }
 
-func Provider_GetService[ServiceType any](provider ServiceProvider) (*ServiceType, error) {
-	service := new(ServiceType)
-	serviceValue, err := provider.GetService(reflect.TypeOf(service))
+func Provider_GetService[ServiceType any](provider ServiceProvider) (ServiceType, error) {
+	newService := new(ServiceType)
+	serviceType := reflect.TypeOf(newService).Elem()
+
+	serviceValue, err := provider.GetService(serviceType)
 	if err != nil {
-		return service, err
+		return *newService, err
 	}
 
-	service = serviceValue.Interface().(*ServiceType)
+	service := serviceValue.Interface().(ServiceType)
 	return service, nil
 }
