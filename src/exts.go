@@ -18,6 +18,40 @@ func Collector_AddInstance[insType any, dstType any](services ServiceCollector, 
 	})
 }
 
+func Collector_AddSingleton(services ServiceCollector, creator any) error {
+	creatorType := reflect.TypeOf(creator)
+	insType := creatorType.Out(0)
+
+	return services.AddService(&ServiceDescriptor{
+		LifeTime:    SL_Singleton,
+		Type:        insType,
+		DstType:     insType,
+		Instance:    reflect.Value{},
+		Creator:     reflect.ValueOf(creator),
+		hasInstance: false,
+	})
+}
+
+func Collector_AddSingletonFor[forT any](services ServiceCollector, creator any) error {
+
+	forType := reflect.TypeOf(new(forT))
+	if forType.Elem().Kind() == reflect.Pointer {
+		return fmt.Errorf("use %s replace %s", forType.Elem().Elem().Name(), forType.Elem().Name())
+	}
+
+	creatorType := reflect.TypeOf(creator)
+	insType := creatorType.Out(0)
+
+	return services.AddService(&ServiceDescriptor{
+		LifeTime:    SL_Scoped,
+		Type:        insType,
+		DstType:     forType,
+		Instance:    reflect.Value{},
+		Creator:     reflect.ValueOf(creator),
+		hasInstance: false,
+	})
+}
+
 func Collector_AddScopeFor[forT any](services ServiceCollector, creator any) error {
 
 	forType := reflect.TypeOf(new(forT))
