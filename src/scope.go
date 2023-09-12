@@ -56,13 +56,15 @@ func (scope *innerScope) CreateSubScope(id string, options ...func(ServiceCollec
 	}
 
 	subScope := newInnerScope(id, scope)
+	subScope.Descriptors = append(subScope.Descriptors, scope.Descriptors...)
+
 	for _, option := range options {
 		option(subScope)
 	}
 
 	scope.SucScopes[id] = subScope
 
-	return nil, nil
+	return subScope, nil
 }
 
 func (scope *innerScope) GetSubScope(id string) (Scope, bool) {
