@@ -73,6 +73,24 @@ func (scope *innerScope) GetSubScope(id string) (Scope, bool) {
 }
 
 func (scope *innerScope) AddService(descriptor *ServiceDescriptor) error {
+
+	canInject, err := isTypeCanInject(descriptor.Type)
+	if !canInject {
+		return err
+	}
+
+	canInject, err = isTypeCanInject(descriptor.DstType)
+	if !canInject {
+		return err
+	}
+
+	if !descriptor.hasInstance {
+		validCreator, err := isValidCreator(descriptor.Creator.Type())
+		if !validCreator {
+			return err
+		}
+	}
+
 	scope.Descriptors = append(scope.Descriptors, descriptor)
 	return nil
 }
