@@ -1,7 +1,6 @@
 package di
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -35,10 +34,6 @@ func Collector_AddSingleton(services ServiceCollector, creator any) error {
 func Collector_AddSingletonFor[forT any](services ServiceCollector, creator any) error {
 
 	forType := reflect.TypeOf(new(forT)).Elem()
-	if forType.Elem().Kind() == reflect.Pointer {
-		return fmt.Errorf("use %s replace %s", forType.Elem().Elem().Name(), forType.Elem().Name())
-	}
-
 	creatorType := reflect.TypeOf(creator)
 	insType := creatorType.Out(0)
 
@@ -55,10 +50,6 @@ func Collector_AddSingletonFor[forT any](services ServiceCollector, creator any)
 func Collector_AddScopeFor[forT any](services ServiceCollector, creator any) error {
 
 	forType := reflect.TypeOf(new(forT)).Elem()
-	if forType.Elem().Kind() == reflect.Pointer {
-		return fmt.Errorf("use %s replace %s", forType.Elem().Elem().Name(), forType.Elem().Name())
-	}
-
 	creatorType := reflect.TypeOf(creator)
 	insType := creatorType.Out(0)
 
