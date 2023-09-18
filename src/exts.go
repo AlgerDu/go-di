@@ -89,3 +89,27 @@ func Provider_GetService[ServiceType any](provider ServiceProvider) (ServiceType
 	service := serviceValue.Interface().(ServiceType)
 	return service, nil
 }
+
+func AddInstance[insType any, dstType any](services ServiceCollector, ins insType) error {
+	return Collector_AddInstance[insType, dstType](services, ins)
+}
+
+func AddSingleton(services ServiceCollector, creator any) error {
+	return Collector_AddSingleton(services, creator)
+}
+
+func AddSingletonFor[forT any](services ServiceCollector, creator any) error {
+	return Collector_AddScopeFor[forT](services, creator)
+}
+
+func AddScopeFor[forT any](services ServiceCollector, creator any) error {
+	return Collector_AddScopeFor[forT](services, creator)
+}
+
+func AddScope(services ServiceCollector, creator any) error {
+	return Collector_AddScope(services, creator)
+}
+
+func GetService[ServiceType any](provider ServiceProvider) (ServiceType, error) {
+	return Provider_GetService[ServiceType](provider)
+}
