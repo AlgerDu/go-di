@@ -98,14 +98,12 @@ func (scope *innerScope) AddService(descriptor *ServiceDescriptor) error {
 }
 
 func (scope *innerScope) GetService(serviceType reflect.Type) (reflect.Value, error) {
-
-	id := exts.Reflect_GetTypeKey(serviceType)
-	box := scope.findOrCreateBox(id)
-
-	return box.GetInstance([]string{})
+	return scope.findOrCreateBox(serviceType).GetInstance()
 }
 
-func (scope *innerScope) findOrCreateBox(id string) *box {
+func (scope *innerScope) findOrCreateBox(serviceType reflect.Type) *box {
+
+	id := exts.Reflect_GetTypeKey(serviceType)
 
 	scope.creatingBox.Lock()
 	defer scope.creatingBox.Unlock()
@@ -116,7 +114,7 @@ func (scope *innerScope) findOrCreateBox(id string) *box {
 	}
 
 	if scope.Parent != nil {
-		box = scope.Parent.findOrCreateBox(id)
+		box = scope.Parent.findOrCreateBox(serviceType)
 	}
 
 	scopeDescriptors := []*ServiceDescriptor{}
@@ -127,17 +125,21 @@ func (scope *innerScope) findOrCreateBox(id string) *box {
 	}
 
 	scopeCount := len(scopeDescriptors)
-	if scopeCount == 0 && box.LifeTime == SL_Singleton {
+	if scopeCount == 0 && box != nil && box.LifeTime == SL_Singleton {
 		scope.Boxs[id] = box
 		return box
 	}
 
-	scopeBox := newBox(id, scope)
+	scopeBox := newBox(id, scope, serviceType)
 	if box != nil {
 		scopeBox.Creators = append(scopeBox.Creators, box.Creators...)
 	}
 	scopeBox.Creators = append(scopeBox.Creators, scopeDescriptors...)
-	scopeBox.LifeTime = scopeDescriptors[scopeCount-1].LifeTime
+	if scopeCount > 0 {
+		scopeBox.LifeTime = scopeDescriptors[scopeCount-1].LifeTime
+	} else {
+		scopeBox.LifeTime = SL_Scoped
+	}
 
 	scope.Boxs[id] = scopeBox
 
@@ -157,20 +159,21 @@ func (scope *innerScope) fillBox(dependPath []string, box *box) error {
 		return nil
 	}
 
-	dependKeys := exts.Reflect_GetFuncParamKeys(lastCreater.Creator.Type())
+	dependTypes := exts.Reflect_GetFuncParam(lastCreater.Creator.Type())
 
-	for _, dependKey := range dependKeys {
+	for _, dependType := range dependTypes {
 		for _, path := range dependPath {
-			if path == dependKey {
+			id := exts.Reflect_GetTypeKey(dependType)
+			if path == id {
 				return fmt.Errorf("cycle depend for %s", box.ID)
 			}
 		}
 	}
 
 	inValues := []reflect.Value{}
-	for _, dependKey := range dependKeys {
-		dependBox := scope.findOrCreateBox(dependKey)
-		dependValue, err := dependBox.GetInstance(dependPath)
+	for _, dependType := range dependTypes {
+		dependBox := scope.findOrCreateBox(dependType)
+		dependValue, err := dependBox.GetInstance(dependPath...)
 		if err != nil {
 			return err
 		}
@@ -180,6 +183,56 @@ func (scope *innerScope) fillBox(dependPath []string, box *box) error {
 	outValues := lastCreater.Creator.Call(inValues)
 	box.Instance = outValues[0]
 
+	return nil
+}
+
+func (scope *innerScope) fillSliceBox(dependPath []string, box *box) error {
+
+	// TODO 这里先不处理支持了
+	creators := box.Creators
+	elemType := box.DstType.Elem()
+
+	if len(creators) == 0 {
+		elemBox := scope.findOrCreateBox(elemType)
+
+		creators = elemBox.Creators
+	}
+
+	sliceValue := reflect.MakeSlice(box.DstType, 0, 1)
+
+	for _, elemCreator := range creators {
+
+		if elemCreator.hasInstance {
+			reflect.AppendSlice(sliceValue, elemCreator.Instance)
+			continue
+		}
+
+		dependTypes := exts.Reflect_GetFuncParam(elemCreator.Creator.Type())
+
+		for _, dependType := range dependTypes {
+			for _, path := range dependPath {
+				id := exts.Reflect_GetTypeKey(dependType)
+				if path == id {
+					return fmt.Errorf("cycle depend for %s", box.ID)
+				}
+			}
+		}
+
+		inValues := []reflect.Value{}
+		for _, dependType := range dependTypes {
+			dependBox := scope.findOrCreateBox(dependType)
+			dependValue, err := dependBox.GetInstance(dependPath...)
+			if err != nil {
+				return err
+			}
+			inValues = append(inValues, dependValue)
+		}
+
+		outValues := elemCreator.Creator.Call(inValues)
+		sliceValue = reflect.Append(sliceValue, outValues[0])
+	}
+
+	box.Instance = sliceValue
 	return nil
 }
 

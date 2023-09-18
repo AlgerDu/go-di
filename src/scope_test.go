@@ -1,6 +1,7 @@
 package di
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -76,4 +77,19 @@ func TestScope_CreateSub(t *testing.T) {
 
 	t.Log(s1.ID)
 	t.Log(s2.ID)
+}
+
+func TestScope_Slice(t *testing.T) {
+	container := New()
+	Collector_AddSingletonFor[bookStore](container, newABookStore)
+	Collector_AddSingletonFor[bookStore](container, newBBookStore)
+
+	stores, err := Provider_GetService[[]bookStore](container)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(len(stores))
+	t.Log(reflect.TypeOf(stores[0]).Elem().Name())
+	t.Log(reflect.TypeOf(stores[1]).Elem().Name())
 }

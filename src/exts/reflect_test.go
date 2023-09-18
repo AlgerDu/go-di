@@ -25,8 +25,24 @@ func TestReflectExts_Key(t *testing.T) {
 	}
 }
 
+func TestReflectExts_SliceKey(t *testing.T) {
+
+	tp := reflect.TypeOf([]*student{})
+	key := Reflect_GetTypeKey(tp)
+
+	desire := "[]github.com/AlgerDu/go-di/src/exts/*student"
+	if key != desire {
+		t.Errorf("key is [%s], not [%s]", key, desire)
+	}
+}
+
 func TestReflectExts_Param(t *testing.T) {
 	tt := reflect.TypeOf(SetStudentName)
 	keys := Reflect_GetFuncParamKeys(tt)
 	t.Log(keys)
+}
+
+func TestReflect_SliceName(t *testing.T) {
+	tt := reflect.TypeOf([]*student{})
+	t.Log(tt.Kind())
 }
