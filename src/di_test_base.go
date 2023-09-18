@@ -3,6 +3,20 @@ package di
 import "sync"
 
 type (
+	reader interface {
+		Read(b *book) error
+	}
+
+	bookStore interface {
+		Find(name string) *book
+	}
+
+	aBookStore struct {
+	}
+
+	bBookStore struct {
+	}
+
 	book struct {
 		Content string
 	}
@@ -10,10 +24,6 @@ type (
 	student struct {
 		ID   int
 		Name string
-	}
-
-	reader interface {
-		Read(b *book) error
 	}
 )
 
@@ -37,4 +47,20 @@ func newStudent() *student {
 
 func (student *student) Read(b *book) error {
 	return nil
+}
+
+func newABookStore() *aBookStore {
+	return &aBookStore{}
+}
+
+func (sotre *aBookStore) Find(name string) *book {
+	return &book{}
+}
+
+func newBBookStore() *bBookStore {
+	return &bBookStore{}
+}
+
+func (sotre *bBookStore) Find(name string) *book {
+	return &book{}
 }
