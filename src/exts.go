@@ -90,7 +90,18 @@ func Provider_GetService[ServiceType any](provider ServiceProvider) (ServiceType
 	return service, nil
 }
 
-func AddInstance[insType any, dstType any](services ServiceCollector, ins insType) error {
+func AddInstance(services ServiceCollector, ins any) error {
+
+	return services.AddService(&ServiceDescriptor{
+		LifeTime:    SL_Singleton,
+		Type:        reflect.TypeOf(ins),
+		DstType:     reflect.TypeOf(ins),
+		Instance:    reflect.ValueOf(ins),
+		hasInstance: true,
+	})
+}
+
+func AddInstanceFor[insType any, dstType any](services ServiceCollector, ins insType) error {
 	return Collector_AddInstance[insType, dstType](services, ins)
 }
 
