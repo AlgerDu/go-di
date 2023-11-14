@@ -78,18 +78,18 @@ func (scope *innerScope) AddService(descriptor *ServiceDescriptor) error {
 
 	canInject, err := isTypeCanInject(descriptor.Type)
 	if !canInject {
-		return err
+		panic(err)
 	}
 
 	canInject, err = isTypeCanInject(descriptor.DstType)
 	if !canInject {
-		return err
+		panic(err)
 	}
 
 	if !descriptor.hasInstance {
 		validCreator, err := isValidCreator(descriptor.Creator.Type())
 		if !validCreator {
-			return err
+			panic(err)
 		}
 	}
 
@@ -159,31 +159,10 @@ func (scope *innerScope) fillBox(dependPath []string, box *box) error {
 		return nil
 	}
 
-	dependTypes := exts.Reflect_GetFuncParam(lastCreater.Creator.Type())
+	ins, err := scope.createInstance(box.ID, lastCreater, dependPath)
+	box.Instance = ins
 
-	for _, dependType := range dependTypes {
-		for _, path := range dependPath {
-			id := exts.Reflect_GetTypeKey(dependType)
-			if path == id {
-				return fmt.Errorf("cycle depend for %s", box.ID)
-			}
-		}
-	}
-
-	inValues := []reflect.Value{}
-	for _, dependType := range dependTypes {
-		dependBox := scope.findOrCreateBox(dependType)
-		dependValue, err := dependBox.GetInstance(dependPath...)
-		if err != nil {
-			return err
-		}
-		inValues = append(inValues, dependValue)
-	}
-
-	outValues := lastCreater.Creator.Call(inValues)
-	box.Instance = outValues[0]
-
-	return nil
+	return err
 }
 
 func (scope *innerScope) fillSliceBox(dependPath []string, box *box) error {
@@ -207,29 +186,12 @@ func (scope *innerScope) fillSliceBox(dependPath []string, box *box) error {
 			continue
 		}
 
-		dependTypes := exts.Reflect_GetFuncParam(elemCreator.Creator.Type())
-
-		for _, dependType := range dependTypes {
-			for _, path := range dependPath {
-				id := exts.Reflect_GetTypeKey(dependType)
-				if path == id {
-					return fmt.Errorf("cycle depend for %s", box.ID)
-				}
-			}
+		ins, err := scope.createInstance(box.ID, elemCreator, dependPath)
+		if err != nil {
+			return err
 		}
 
-		inValues := []reflect.Value{}
-		for _, dependType := range dependTypes {
-			dependBox := scope.findOrCreateBox(dependType)
-			dependValue, err := dependBox.GetInstance(dependPath...)
-			if err != nil {
-				return err
-			}
-			inValues = append(inValues, dependValue)
-		}
-
-		outValues := elemCreator.Creator.Call(inValues)
-		sliceValue = reflect.Append(sliceValue, outValues[0])
+		sliceValue = reflect.Append(sliceValue, ins)
 	}
 
 	box.Instance = sliceValue
@@ -238,4 +200,43 @@ func (scope *innerScope) fillSliceBox(dependPath []string, box *box) error {
 
 func (scope *innerScope) fmtSubScopeID(id string) string {
 	return fmt.Sprintf("%s.%s", scope.ID, id)
+}
+
+func (scope *innerScope) createInstance(id string, creater *ServiceDescriptor, dependPath []string) (reflect.Value, error) {
+	dependTypes := exts.Reflect_GetFuncParam(creater.Creator.Type())
+
+	for _, dependType := range dependTypes {
+		for _, path := range dependPath {
+			id := exts.Reflect_GetTypeKey(dependType)
+			if path == id {
+				return reflect.Value{}, fmt.Errorf("cycle depend for %s", id)
+			}
+		}
+	}
+
+	inValues := []reflect.Value{}
+	for _, dependType := range dependTypes {
+		dependBox := scope.findOrCreateBox(dependType)
+		dependValue, err := dependBox.GetInstance(dependPath...)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		inValues = append(inValues, dependValue)
+	}
+
+	outValues := creater.Creator.Call(inValues)
+	var err error
+	if len(outValues) == 2 {
+
+		errReturn, ok := outValues[1].Interface().(error)
+		if !exts.Reflect_IsNil(outValues[1]) && !ok {
+			return reflect.Value{}, fmt.Errorf("func creator sencond return value only support error, current is %s", outValues[1].Type().Name())
+		}
+
+		if errReturn != nil {
+			err = fmt.Errorf("creator returns err for %s.\n%s", id, errReturn)
+		}
+	}
+
+	return outValues[0], err
 }
