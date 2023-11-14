@@ -47,3 +47,12 @@ func Reflect_GetFuncParamKeys(t reflect.Type) []string {
 
 	return keys
 }
+
+func Reflect_IsNil(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Interface, reflect.Array, reflect.Chan:
+		return v.IsNil()
+	default:
+		return false
+	}
+}

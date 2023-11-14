@@ -38,8 +38,8 @@ func isValidCreator(t reflect.Type) (bool, error) {
 	}
 
 	outCount := t.NumOut()
-	if outCount != 1 {
-		return false, fmt.Errorf("func creator should has 1 return, curr is %d", outCount)
+	if outCount > 2 {
+		return false, fmt.Errorf("func creator should <= 2 return, curr is %d", outCount)
 	}
 
 	outType := t.Out(0)
