@@ -3,6 +3,7 @@ package di
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/AlgerDu/go-di/src/exts"
@@ -209,7 +210,7 @@ func (scope *innerScope) createInstance(id string, creater *ServiceDescriptor, d
 		for _, path := range dependPath {
 			id := exts.Reflect_GetTypeKey(dependType)
 			if path == id {
-				return reflect.Value{}, fmt.Errorf("cycle depend for %s", id)
+				return reflect.Value{}, fmt.Errorf("cycle depend for %s. \n%s", id, strings.Join(dependPath, "\n"))
 			}
 		}
 	}
