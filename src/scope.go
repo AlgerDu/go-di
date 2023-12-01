@@ -150,7 +150,7 @@ func (scope *innerScope) findOrCreateBox(serviceType reflect.Type) *box {
 func (scope *innerScope) fillBox(dependPath []string, box *box) error {
 
 	if box.CanntFill() {
-		return fmt.Errorf("[%s] is not inject", box.ID)
+		return fmt.Errorf("[%s] is not inject. \n%s", box.ID, strings.Join(dependPath, "\n"))
 	}
 
 	lastCreater := box.Creators[len(box.Creators)-1]
