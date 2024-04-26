@@ -93,3 +93,20 @@ func TestScope_Slice(t *testing.T) {
 	t.Log(reflect.TypeOf(stores[0]).Elem().Name())
 	t.Log(reflect.TypeOf(stores[1]).Elem().Name())
 }
+
+func TestScope_GetScope(t *testing.T) {
+	container := New()
+
+	scope, err := GetService[Scope](container)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Log(reflect.ValueOf(scope).Type().Name())
+	innerScope, ok := scope.(*innerScope)
+	if ok {
+		t.Log(innerScope.ID)
+	}
+
+}

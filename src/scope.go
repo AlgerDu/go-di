@@ -29,7 +29,7 @@ func newInnerScope(
 	parent *innerScope,
 ) *innerScope {
 
-	return &innerScope{
+	scope := &innerScope{
 		ID:               id,
 		Parent:           parent,
 		SucScopes:        map[string]*innerScope{},
@@ -38,6 +38,10 @@ func newInnerScope(
 		creatingBox:      sync.Mutex{},
 		creatingSubScope: sync.Mutex{},
 	}
+
+	AddInstanceFor[*innerScope, Scope](scope, scope)
+
+	return scope
 }
 
 func (scope *innerScope) CreateSubScope(id string, options ...func(ServiceCollector)) (Scope, error) {

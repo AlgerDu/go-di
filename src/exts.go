@@ -77,6 +77,7 @@ func Collector_AddScope(services ServiceCollector, creator any) error {
 	})
 }
 
+// Deprecated: 请使用 di.GetService 替代
 func Provider_GetService[ServiceType any](provider ServiceProvider) (ServiceType, error) {
 	newService := new(ServiceType)
 	serviceType := reflect.TypeOf(newService).Elem()
