@@ -47,6 +47,7 @@ func Collector_AddSingletonFor[forT any](services ServiceCollector, creator any)
 	})
 }
 
+// Deprecated: 请使用 AddScopeFor 替代
 func Collector_AddScopeFor[forT any](services ServiceCollector, creator any) error {
 
 	forType := reflect.TypeOf(new(forT)).Elem()
@@ -63,6 +64,7 @@ func Collector_AddScopeFor[forT any](services ServiceCollector, creator any) err
 	})
 }
 
+// Deprecated: 请使用 AddScope 替代
 func Collector_AddScope(services ServiceCollector, creator any) error {
 	creatorType := reflect.TypeOf(creator)
 	insType := creatorType.Out(0)
@@ -77,7 +79,7 @@ func Collector_AddScope(services ServiceCollector, creator any) error {
 	})
 }
 
-// Deprecated: 请使用 di.GetService 替代
+// Deprecated: 请使用 GetService 替代
 func Provider_GetService[ServiceType any](provider ServiceProvider) (ServiceType, error) {
 	newService := new(ServiceType)
 	serviceType := reflect.TypeOf(newService).Elem()
