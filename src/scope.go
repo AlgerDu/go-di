@@ -189,7 +189,7 @@ func (scope *innerScope) fillSliceBox(dependPath []string, box *box) error {
 
 	for _, elemCreator := range creators {
 
-		ins, err := scope.findOrCreateBox(elemCreator.Type).GetInstance()
+		ins, err := scope.findOrCreateBox(elemCreator.Type).GetInstance(dependPath...)
 		if err != nil {
 			return err
 		}
