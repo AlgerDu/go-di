@@ -57,7 +57,9 @@ func (sotre *aBookStore) Find(name string) *book {
 	return &book{}
 }
 
-func newBBookStore() *bBookStore {
+func newBBookStore(
+	aBookStore *aBookStore,
+) *bBookStore {
 	return &bBookStore{}
 }
 

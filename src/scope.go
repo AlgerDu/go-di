@@ -81,6 +81,9 @@ func (scope *innerScope) GetSubScope(id string) (Scope, bool) {
 
 func (scope *innerScope) AddService(descriptor *ServiceDescriptor) error {
 
+	descriptor.TypeID = exts.Reflect_GetTypeKey(descriptor.Type)
+	descriptor.DstTypeID = exts.Reflect_GetTypeKey(descriptor.DstType)
+
 	canInject, err := isTypeCanInject(descriptor.Type)
 	if !canInject {
 		panic(err)
@@ -186,12 +189,7 @@ func (scope *innerScope) fillSliceBox(dependPath []string, box *box) error {
 
 	for _, elemCreator := range creators {
 
-		if elemCreator.hasInstance {
-			reflect.AppendSlice(sliceValue, elemCreator.Instance)
-			continue
-		}
-
-		ins, err := scope.createInstance(box.ID, elemCreator, dependPath)
+		ins, err := scope.findOrCreateBox(elemCreator.Type).GetInstance()
 		if err != nil {
 			return err
 		}

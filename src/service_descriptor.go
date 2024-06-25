@@ -12,6 +12,9 @@ type ServiceDescriptor struct {
 	Type    reflect.Type
 	DstType reflect.Type
 
+	TypeID    string // 为了调试
+	DstTypeID string // 为了调试
+
 	Instance reflect.Value
 	Creator  reflect.Value
 

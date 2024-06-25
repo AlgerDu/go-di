@@ -94,6 +94,26 @@ func TestScope_Slice(t *testing.T) {
 	t.Log(reflect.TypeOf(stores[1]).Elem().Name())
 }
 
+func TestScope_Slice2(t *testing.T) {
+	container := New()
+	AddSingletonFor[bookStore](container, newABookStore)
+	AddSingletonFor[bookStore](container, newBBookStore)
+
+	stores, err := Provider_GetService[[]bookStore](container)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(len(stores))
+
+	store, err := Provider_GetService[*aBookStore](container)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(store)
+}
+
 func TestScope_GetScope(t *testing.T) {
 	container := New()
 
