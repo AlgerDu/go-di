@@ -64,6 +64,8 @@ func (box *structBox) GetInstance(toGetTypeID string, dependPath ...string) (ref
 		}
 
 		box.Instance = instance
+	} else if box.Descriptor.hasInstance {
+		box.Instance = box.Descriptor.Instance
 	} else {
 
 		instance, err := createInstance(toGetTypeID, box.Scope, box.Descriptor, dependPath)

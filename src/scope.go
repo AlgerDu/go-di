@@ -63,7 +63,6 @@ func (scope *innerScope) CreateSubScope(id string, options ...func(ServiceCollec
 	}
 
 	subScope := newInnerScope(id, scope)
-	subScope.Descriptors = append(subScope.Descriptors, scope.Descriptors...)
 
 	for _, option := range options {
 		option(subScope)
@@ -156,15 +155,20 @@ func (scope *innerScope) FindOrCreateBox(serviceType reflect.Type) box {
 		return scope.boxs[boxID]
 	}
 
-	descriptors := scope.FindSupportDescriptors(id)
-	if len(descriptors) == 0 {
-		return newEmptyBox(id)
-	}
-
 	var box box
 	if serviceType.Kind() == reflect.Slice {
+		sliceElemType := serviceType.Elem()
+		descriptors := scope.FindSupportDescriptors(exts.Reflect_GetTypeKey(sliceElemType))
+		if len(descriptors) == 0 {
+			return newEmptyBox(id)
+		}
 		box = newSliceBox(descriptors, scope, serviceType)
 	} else {
+		descriptors := scope.FindSupportDescriptors(id)
+		if len(descriptors) == 0 {
+			return newEmptyBox(id)
+		}
+
 		descriptor := descriptors[0]
 		existBox, exist := scope.boxs[descriptor.id]
 		if exist {
