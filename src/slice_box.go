@@ -3,6 +3,8 @@ package di
 import (
 	"reflect"
 	"sync"
+
+	"github.com/AlgerDu/go-di/src/exts"
 )
 
 type (
@@ -55,11 +57,13 @@ func (box *sliceBox) GetInstance(toGetTypeID string, dependPath ...string) (refl
 		return box.Instance, nil
 	}
 
+	dependPath = append([]string{toGetTypeID}, dependPath...)
+
 	sliceValue := reflect.MakeSlice(box.DstType, 0, 1)
 	for _, descriptor := range box.Descriptors {
 		ins, err := box.Scope.
 			FindOrCreateBoxByDescriptor(descriptor).
-			GetInstance(toGetTypeID, dependPath...)
+			GetInstance(exts.Reflect_GetTypeKey(descriptor.Type), dependPath...)
 		if err != nil {
 			return reflect.Value{}, err
 		}

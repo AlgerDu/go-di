@@ -28,7 +28,7 @@ func createInstance(
 	inValues := []reflect.Value{}
 	for _, dependType := range dependTypes {
 		dependBox := scope.FindOrCreateBox(dependType)
-		dependValue, err := dependBox.GetInstance(toCreateTypeID, dependPath...)
+		dependValue, err := dependBox.GetInstance(exts.Reflect_GetTypeKey(dependType), dependPath...)
 		if err != nil {
 			return reflect.Value{}, err
 		}
