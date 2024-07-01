@@ -8,9 +8,9 @@ import (
 func TestScope_Base(t *testing.T) {
 
 	scope := newInnerScope("root", nil)
-	Collector_AddScope(scope, newStudent)
+	AddScope(scope, newStudent)
 
-	s, err := Provider_GetService[*student](scope)
+	s, err := GetService[*student](scope)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -21,14 +21,14 @@ func TestScope_Base(t *testing.T) {
 func TestScope_Singleton(t *testing.T) {
 
 	scope := newInnerScope("root", nil)
-	Collector_AddSingleton(scope, newStudent)
+	AddSingleton(scope, newStudent)
 
-	s1, err := Provider_GetService[*student](scope)
+	s1, err := GetService[*student](scope)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	s2, err := Provider_GetService[*student](scope)
+	s2, err := GetService[*student](scope)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -41,9 +41,9 @@ func TestScope_Singleton(t *testing.T) {
 func TestScope_Singleton2(t *testing.T) {
 
 	scope := newInnerScope("root", nil)
-	Collector_AddSingletonFor[reader](scope, newStudent)
+	AddSingletonFor[reader](scope, newStudent)
 
-	r, err := Provider_GetService[reader](scope)
+	r, err := GetService[reader](scope)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -54,24 +54,24 @@ func TestScope_Singleton2(t *testing.T) {
 func TestScope_CreateSub(t *testing.T) {
 
 	root := newInnerScope("root", nil)
-	Collector_AddSingleton(root, newStudent)
+	AddSingleton(root, newStudent)
 
 	subScope, err := root.CreateSubScope("t")
 	if err != nil {
 		t.Error(err)
 	}
 
-	s1, err := Provider_GetService[*student](root)
+	s1, err := GetService[*student](root)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	s2, err := Provider_GetService[*student](subScope)
+	s2, err := GetService[*student](subScope)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	if s1.ID == s2.ID {
+	if s1.ID != s2.ID {
 		t.Errorf("err")
 	}
 
@@ -81,10 +81,10 @@ func TestScope_CreateSub(t *testing.T) {
 
 func TestScope_Slice(t *testing.T) {
 	container := New()
-	Collector_AddSingletonFor[bookStore](container, newABookStore)
-	Collector_AddSingletonFor[bookStore](container, newBBookStore)
+	AddSingletonFor[bookStore](container, newABookStore, true)
+	AddSingletonFor[bookStore](container, newBBookStore)
 
-	stores, err := Provider_GetService[[]bookStore](container)
+	stores, err := GetService[[]bookStore](container)
 	if err != nil {
 		t.Error(err)
 	}
@@ -92,4 +92,41 @@ func TestScope_Slice(t *testing.T) {
 	t.Log(len(stores))
 	t.Log(reflect.TypeOf(stores[0]).Elem().Name())
 	t.Log(reflect.TypeOf(stores[1]).Elem().Name())
+}
+
+func TestScope_Slice2(t *testing.T) {
+	container := New()
+	AddSingletonFor[bookStore](container, newABookStore, true)
+	AddSingletonFor[bookStore](container, newBBookStore)
+
+	stores, err := GetService[[]bookStore](container)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(len(stores))
+
+	store, err := GetService[*aBookStore](container)
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Log(store)
+}
+
+func TestScope_GetScope(t *testing.T) {
+	container := New()
+
+	scope, err := GetService[Scope](container)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	t.Log(reflect.ValueOf(scope).Type().Name())
+	innerScope, ok := scope.(*innerScope)
+	if ok {
+		t.Log(innerScope.ID)
+	}
+
 }
