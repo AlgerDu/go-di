@@ -57,7 +57,7 @@ func (box *sliceBox) GetInstance(toGetTypeID string, dependPath ...string) (refl
 		return box.Instance, nil
 	}
 
-	dependPath = append([]string{toGetTypeID}, dependPath...)
+	dependPath = append(dependPath, toGetTypeID)
 
 	sliceValue := reflect.MakeSlice(box.DstType, 0, 1)
 	for _, descriptor := range box.Descriptors {
