@@ -3,7 +3,6 @@ package di
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 
 	"github.com/AlgerDu/go-di/src/exts"
@@ -17,7 +16,9 @@ type (
 		SucScopes map[string]*innerScope
 
 		Descriptors []*ServiceDescriptor
-		Boxs        map[string]*box
+
+		boxs       map[uint64]box
+		idToBoxIDs map[string]uint64
 
 		creatingBox      sync.Mutex
 		creatingSubScope sync.Mutex
@@ -34,7 +35,8 @@ func newInnerScope(
 		Parent:           parent,
 		SucScopes:        map[string]*innerScope{},
 		Descriptors:      []*ServiceDescriptor{},
-		Boxs:             map[string]*box{},
+		boxs:             map[uint64]box{},
+		idToBoxIDs:       map[string]uint64{},
 		creatingBox:      sync.Mutex{},
 		creatingSubScope: sync.Mutex{},
 	}
@@ -81,9 +83,6 @@ func (scope *innerScope) GetSubScope(id string) (Scope, bool) {
 
 func (scope *innerScope) AddService(descriptor *ServiceDescriptor) error {
 
-	descriptor.TypeID = exts.Reflect_GetTypeKey(descriptor.Type)
-	descriptor.DstTypeID = exts.Reflect_GetTypeKey(descriptor.DstType)
-
 	canInject, err := isTypeCanInject(descriptor.Type)
 	if !canInject {
 		panic(err)
@@ -101,145 +100,86 @@ func (scope *innerScope) AddService(descriptor *ServiceDescriptor) error {
 		}
 	}
 
-	scope.Descriptors = append(scope.Descriptors, descriptor)
+	scope.Descriptors = append(scope.Descriptors, copyDescriptor(descriptor, scope))
 	return nil
 }
 
 func (scope *innerScope) GetService(serviceType reflect.Type) (reflect.Value, error) {
-	return scope.findOrCreateBox(serviceType).GetInstance()
+	return scope.FindOrCreateBox(serviceType).GetInstance(exts.Reflect_GetTypeKey(serviceType))
 }
 
-func (scope *innerScope) findOrCreateBox(serviceType reflect.Type) *box {
+func (scope *innerScope) FindSupportDescriptors(id string) []*ServiceDescriptor {
+	descriptors := []*ServiceDescriptor{}
 
-	id := exts.Reflect_GetTypeKey(serviceType)
+	if scope.Parent != nil {
+		descriptors = append(descriptors, scope.Parent.FindSupportDescriptors(id)...)
+	}
+
+	for _, descriptor := range scope.Descriptors {
+		if descriptor.IsSuport(id) {
+			descriptors = append(descriptors, descriptor)
+		}
+	}
+
+	return descriptors
+}
+
+func (scope *innerScope) FindOrCreateBoxByDescriptor(descriptor *ServiceDescriptor) box {
+
+	if box, exist := scope.boxs[descriptor.id]; exist {
+		return box
+	}
 
 	scope.creatingBox.Lock()
 	defer scope.creatingBox.Unlock()
 
-	box, exist := scope.Boxs[id]
-	if exist {
+	if box, exist := scope.boxs[descriptor.id]; exist {
 		return box
 	}
 
-	if scope.Parent != nil {
-		box = scope.Parent.findOrCreateBox(serviceType)
+	box := newStructBox(descriptor, scope)
+	scope.boxs[box.GetID()] = box
+
+	return box
+}
+
+func (scope *innerScope) FindOrCreateBox(serviceType reflect.Type) box {
+	id := exts.Reflect_GetTypeKey(serviceType)
+	if boxID, exist := scope.idToBoxIDs[id]; exist {
+		return scope.boxs[boxID]
 	}
 
-	scopeDescriptors := []*ServiceDescriptor{}
-	for _, descriptor := range scope.Descriptors {
-		if descriptor.IsSuport(id) {
-			scopeDescriptors = append(scopeDescriptors, descriptor)
-		}
+	scope.creatingBox.Lock()
+	defer scope.creatingBox.Unlock()
+
+	if boxID, exist := scope.idToBoxIDs[id]; exist {
+		return scope.boxs[boxID]
 	}
 
-	scopeCount := len(scopeDescriptors)
-	if scopeCount == 0 && box != nil && box.LifeTime == SL_Singleton {
-		scope.Boxs[id] = box
-		return box
+	descriptors := scope.FindSupportDescriptors(id)
+	if len(descriptors) == 0 {
+		return newEmptyBox(id)
 	}
 
-	scopeBox := newBox(id, scope, serviceType)
-	if box != nil {
-		scopeBox.Creators = append(scopeBox.Creators, box.Creators...)
-	}
-	scopeBox.Creators = append(scopeBox.Creators, scopeDescriptors...)
-	if scopeCount > 0 {
-		scopeBox.LifeTime = scopeDescriptors[scopeCount-1].LifeTime
+	var box box
+	if serviceType.Kind() == reflect.Slice {
+		box = newSliceBox(descriptors, scope, serviceType)
 	} else {
-		scopeBox.LifeTime = SL_Scoped
-	}
-
-	scope.Boxs[id] = scopeBox
-
-	return scopeBox
-}
-
-func (scope *innerScope) fillBox(dependPath []string, box *box) error {
-
-	if box.CanntFill() {
-		return fmt.Errorf("[%s] is not inject. \n%s", box.ID, strings.Join(dependPath, "\n"))
-	}
-
-	lastCreater := box.Creators[len(box.Creators)-1]
-
-	if lastCreater.hasInstance {
-		box.Instance = lastCreater.Instance
-		return nil
-	}
-
-	ins, err := scope.createInstance(box.ID, lastCreater, dependPath)
-	box.Instance = ins
-
-	return err
-}
-
-func (scope *innerScope) fillSliceBox(dependPath []string, box *box) error {
-
-	// TODO 这里先不处理支持了
-	creators := box.Creators
-	elemType := box.DstType.Elem()
-
-	if len(creators) == 0 {
-		elemBox := scope.findOrCreateBox(elemType)
-
-		creators = elemBox.Creators
-	}
-
-	sliceValue := reflect.MakeSlice(box.DstType, 0, 1)
-
-	for _, elemCreator := range creators {
-
-		ins, err := scope.findOrCreateBox(elemCreator.Type).GetInstance(dependPath...)
-		if err != nil {
-			return err
+		descriptor := descriptors[0]
+		existBox, exist := scope.boxs[descriptor.id]
+		if exist {
+			box = existBox
+		} else {
+			box = newStructBox(descriptors[0], scope)
 		}
-
-		sliceValue = reflect.Append(sliceValue, ins)
 	}
 
-	box.Instance = sliceValue
-	return nil
+	scope.boxs[box.GetID()] = box
+	scope.idToBoxIDs[id] = box.GetID()
+
+	return box
 }
 
 func (scope *innerScope) fmtSubScopeID(id string) string {
 	return fmt.Sprintf("%s.%s", scope.ID, id)
-}
-
-func (scope *innerScope) createInstance(id string, creater *ServiceDescriptor, dependPath []string) (reflect.Value, error) {
-	dependTypes := exts.Reflect_GetFuncParam(creater.Creator.Type())
-
-	for _, dependType := range dependTypes {
-		for _, path := range dependPath {
-			id := exts.Reflect_GetTypeKey(dependType)
-			if path == id {
-				return reflect.Value{}, fmt.Errorf("cycle depend for %s. \n%s", id, strings.Join(dependPath, "\n"))
-			}
-		}
-	}
-
-	inValues := []reflect.Value{}
-	for _, dependType := range dependTypes {
-		dependBox := scope.findOrCreateBox(dependType)
-		dependValue, err := dependBox.GetInstance(dependPath...)
-		if err != nil {
-			return reflect.Value{}, err
-		}
-		inValues = append(inValues, dependValue)
-	}
-
-	outValues := creater.Creator.Call(inValues)
-	var err error
-	if len(outValues) == 2 {
-
-		errReturn, ok := outValues[1].Interface().(error)
-		if !exts.Reflect_IsNil(outValues[1]) && !ok {
-			return reflect.Value{}, fmt.Errorf("func creator sencond return value only support error, current is %s", outValues[1].Type().Name())
-		}
-
-		if errReturn != nil {
-			err = fmt.Errorf("creator returns err for %s.\n%s", id, errReturn)
-		}
-	}
-
-	return outValues[0], err
 }
