@@ -48,7 +48,7 @@ func AddSingletonFor[forT any](
 	insType := creatorType.Out(0)
 
 	descriptor := &ServiceDescriptor{
-		LifeTime:    SL_Scoped,
+		LifeTime:    SL_Singleton,
 		Type:        insType,
 		DstType:     forType,
 		Instance:    reflect.Value{},

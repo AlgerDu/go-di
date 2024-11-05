@@ -128,5 +128,29 @@ func TestScope_GetScope(t *testing.T) {
 	if ok {
 		t.Log(innerScope.ID)
 	}
+}
 
+func TestSubScope_SingletonFor(t *testing.T) {
+
+	scope := newInnerScope("root", nil)
+	AddSingletonFor[reader](scope, newStudent)
+
+	s1, err := GetService[reader](scope)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	subScope, err := scope.CreateSubScope("sub")
+	if err != nil {
+		t.Error(err)
+	}
+
+	s2, err := GetService[reader](subScope)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if s1 != s2 {
+		t.Errorf("addr not equal for Singleton")
+	}
 }
