@@ -37,7 +37,7 @@ func (box *structBox) GetID() uint64 {
 func (box *structBox) GetInstance(toGetTypeID string, dependPath ...string) (reflect.Value, error) {
 
 	if box.Descriptor.LifeTime == SL_Transient {
-		return createInstance(toGetTypeID, box.Scope, box.Descriptor, dependPath)
+		return createInstance(toGetTypeID, box.Scope, box.Descriptor.Creator, dependPath)
 	}
 
 	if box.State == bs_OK {
@@ -68,7 +68,7 @@ func (box *structBox) GetInstance(toGetTypeID string, dependPath ...string) (ref
 		box.Instance = box.Descriptor.Instance
 	} else {
 
-		instance, err := createInstance(toGetTypeID, box.Scope, box.Descriptor, dependPath)
+		instance, err := createInstance(toGetTypeID, box.Scope, box.Descriptor.Creator, dependPath)
 		if err != nil {
 			return reflect.Value{}, err
 		}

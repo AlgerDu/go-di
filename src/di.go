@@ -16,6 +16,7 @@ type (
 
 	ServiceProvider interface {
 		GetService(serviceType reflect.Type) (reflect.Value, error)
+		ResloveService(creator any) (reflect.Value, error)
 	}
 
 	Scope interface {

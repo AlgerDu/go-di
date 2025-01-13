@@ -11,10 +11,10 @@ import (
 func createInstance(
 	toCreateTypeID string,
 	scope *innerScope,
-	creater *ServiceDescriptor,
+	creater reflect.Value,
 	dependPath []string,
 ) (reflect.Value, error) {
-	dependTypes := exts.Reflect_GetFuncParam(creater.Creator.Type())
+	dependTypes := exts.Reflect_GetFuncParam(creater.Type())
 
 	for _, dependType := range dependTypes {
 		for _, path := range dependPath {
@@ -35,7 +35,7 @@ func createInstance(
 		inValues = append(inValues, dependValue)
 	}
 
-	outValues := creater.Creator.Call(inValues)
+	outValues := creater.Call(inValues)
 	var err error
 	if len(outValues) == 2 {
 

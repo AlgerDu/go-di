@@ -146,3 +146,13 @@ func GetService[ServiceType any](provider ServiceProvider) (ServiceType, error) 
 	service := serviceValue.Interface().(ServiceType)
 	return service, nil
 }
+
+func ResloveService[ServiceType any](provider ServiceProvider, creator any) (ServiceType, error) {
+	serviceValue, err := provider.ResloveService(creator)
+	if err != nil {
+		return *new(ServiceType), err
+	}
+
+	service := serviceValue.Interface().(ServiceType)
+	return service, nil
+}

@@ -154,3 +154,26 @@ func TestSubScope_SingletonFor(t *testing.T) {
 		t.Errorf("addr not equal for Singleton")
 	}
 }
+
+func TestScope_Reslove(t *testing.T) {
+
+	scope := newInnerScope("root", nil)
+	AddScope(scope, newStudent)
+
+	useNamePrinter := func(student *student) func() bool {
+		return func() bool {
+			println("student name is", student.Name)
+			return true
+		}
+	}
+
+	printer, err := ResloveService[func() bool](scope, useNamePrinter)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	ok := printer()
+	if !ok {
+		t.Error("invok printer false")
+	}
+}

@@ -107,6 +107,10 @@ func (scope *innerScope) GetService(serviceType reflect.Type) (reflect.Value, er
 	return scope.FindOrCreateBox(serviceType).GetInstance(exts.Reflect_GetTypeKey(serviceType))
 }
 
+func (scope *innerScope) ResloveService(creator any) (reflect.Value, error) {
+	return createInstance("reslove", scope, reflect.ValueOf(creator), []string{})
+}
+
 func (scope *innerScope) FindSupportDescriptors(id string) []*ServiceDescriptor {
 	descriptors := []*ServiceDescriptor{}
 
